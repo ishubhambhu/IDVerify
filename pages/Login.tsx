@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, ScanLine, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { getAdminSettings, setAuthStatus } from '../utils/storage';
@@ -32,11 +32,15 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="bg-indigo-100 p-3 rounded-full inline-flex items-center justify-center mb-4">
-            <ScanLine className="w-8 h-8 text-indigo-600" />
+          <div className="bg-white p-3 rounded-full inline-flex items-center justify-center mb-4">
+            <img 
+              src="bhu.png" 
+              alt="BHU Logo" 
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Admin Portal</h2>
           <p className="mt-2 text-gray-600">Please sign in to manage IDs</p>
