@@ -93,33 +93,30 @@ export const VerificationView: React.FC = () => {
                 className="w-32 h-32 rounded-full object-cover border-4 border-white"
               />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mt-4 text-center">{student.fullName}</h2>
-            <p className="text-gray-500 font-medium">{student.studentId}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mt-4 text-center">{student.fullName || (student.designation || '')}</h2>
+            <p className="text-gray-500 font-medium">{student.emplNo || student.studentId}</p>
           </div>
-
           <div className="space-y-4 border-t border-gray-100 pt-6">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Department</p>
-                    <p className="font-semibold text-gray-900 truncate">{student.department}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Status</p>
-                    <p className={`font-semibold ${student.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>
-                        {student.status}
-                    </p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Valid Until</p>
-                    <p className={`font-semibold ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
-                        {student.validUntil}
-                    </p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Emergency</p>
-                    <p className="font-semibold text-gray-900">{student.emergencyContact}</p>
-                </div>
-             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase">Designation</p>
+                <p className="font-semibold text-gray-900 truncate">{student.designation || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase">Department</p>
+                <p className="font-semibold text-gray-900 truncate">{student.department || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase">Employee Number</p>
+                <p className="font-semibold text-gray-900">{student.emplNo || student.studentId || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase">Valid Till</p>
+                <p className={`font-semibold ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                  {student.validUntil || '-'}
+                </p>
+              </div>
+            </div>
           </div>
           
           <div className="mt-6 text-center">
@@ -130,9 +127,7 @@ export const VerificationView: React.FC = () => {
         </div>
       </div>
 
-      <Link to="/" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
-        <Shield className="h-4 w-4" /> Admin Login
-      </Link>
+      {/* Admin Login removed to prevent edits from the verification view */}
     </div>
   );
 };

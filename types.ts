@@ -9,6 +9,8 @@ export interface Student {
   id: string;
   fullName: string;
   studentId: string;
+  emplNo?: string;
+  designation?: string;
   department: string;
   email: string;
   photoUrl: string;

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getStudentById, saveStudent } from '../services/storage';
-import { generateStudentSummary } from '../services/gemini';
 import { Student, StudentStatus } from '../types';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
-import { Upload, Save, ArrowLeft, Wand2, Camera, X } from 'lucide-react';
+import { Upload, Save, ArrowLeft, Camera, X } from 'lucide-react';
 
 // Helper to resize images to avoid LocalStorage limits
 const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
@@ -69,8 +68,7 @@ export const StudentEditor: React.FC = () => {
     emergencyContact: ''
   });
 
-  const [aiSummary, setAiSummary] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  
 
   useEffect(() => {
     if (id) {
@@ -106,23 +104,19 @@ export const StudentEditor: React.FC = () => {
     }
   };
 
-  const handleAiGenerate = async () => {
-    if (!formData.fullName || !formData.department) {
-      alert("Please enter Name and Department first.");
-      return;
-    }
-    setIsGenerating(true);
-    const summary = await generateStudentSummary(formData);
-    setAiSummary(summary);
-    setIsGenerating(false);
-  };
+  // AI generation removed for simplified editor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     // Simulate save delay
     setTimeout(() => {
-      saveStudent(formData);
+      const toSave: Student = {
+        ...formData,
+        studentId: (formData as any).emplNo || formData.studentId,
+        fullName: formData.fullName || (formData as any).designation || (formData as any).emplNo || '',
+      } as Student;
+      saveStudent(toSave);
       setIsLoading(false);
       navigate('/');
     }, 500);
@@ -149,148 +143,58 @@ export const StudentEditor: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    required
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. Jane Doe"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Designation</label>
                   <input
                     type="text"
                     name="designation"
-                    value={formData.designation}
+                    required
+                    value={formData.designation || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. Professor"
+                    placeholder="e.g. Lecturer"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Department / Major</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
                   <input
                     type="text"
                     name="department"
                     required
-                    value={formData.department}
+                    value={formData.department || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g. Computer Science"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact No</label>
-                  <input
-                    type="text"
-                    name="contactNo"
-                    value={formData.contactNo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. 1234567890"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Employee No</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Employee Number</label>
                   <input
                     type="text"
                     name="emplNo"
-                    value={formData.emplNo}
+                    required
+                    value={formData.emplNo || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g. EMP12345"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                  <input
-                    type="date"
-                    name="dob"
-                    value={formData.dob}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Permanent Address</label>
-                  <textarea
-                    name="permanentAddress"
-                    value={formData.permanentAddress}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. 123 Main Street, City, Country"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Valid Until</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Valid Till</label>
                   <input
                     type="date"
                     name="validUntil"
                     required
-                    value={formData.validUntil}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  >
-                    {Object.values(StudentStatus).map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact</label>
-                  <input
-                    type="text"
-                    name="emergencyContact"
-                    value={formData.emergencyContact}
+                    value={formData.validUntil || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
-              {/* Gemini Integration Demo */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <div className="flex justify-between items-center mb-2">
-                   <span className="text-sm font-semibold text-blue-800 flex items-center gap-2">
-                     <Wand2 className="h-4 w-4" />
-                     AI Profile Helper
-                   </span>
-                   <button 
-                     type="button" 
-                     onClick={handleAiGenerate}
-                     disabled={isGenerating}
-                     className="text-xs bg-white text-blue-600 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 disabled:opacity-50"
-                   >
-                     {isGenerating ? 'Generating...' : 'Generate Bio'}
-                   </button>
-                </div>
-                <p className="text-sm text-blue-700">
-                  {aiSummary || "Click 'Generate Bio' to let AI create a profile summary based on the details above."}
-                </p>
-              </div>
+              {/* AI helper removed for simplified editor */}
 
               <div className="flex items-center justify-end pt-4 border-t border-gray-100">
                 <button
