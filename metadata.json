@@ -1,4 +1,7 @@
 {
-  "name": "SafeCampus ID",
-  "description": "A student identity management and verification system. Create digital ID cards, generate unique QR codes, and verify student status instantly with AI-powered security insights."
+  "name": "IDVerify Pro",
+  "description": "A modern employee identity management and verification system with QR code generation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

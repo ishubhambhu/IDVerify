@@ -1,27 +1,28 @@
-export enum StudentStatus {
-  Active = 'Active',
-  Suspended = 'Suspended',
-  Graduated = 'Graduated',
-  Inactive = 'Inactive'
-}
-
-export interface Student {
+export interface CustomField {
   id: string;
-  fullName: string;
-  studentId: string;
-  emplNo?: string;
-  designation?: string;
-  department: string;
-  email: string;
-  photoUrl: string;
-  validUntil: string;
-  status: StudentStatus;
-  emergencyContact: string;
-  bloodType?: string;
+  label: string;
+  value: string;
 }
 
-export interface VerificationResult {
-  verified: boolean;
-  message: string;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+export interface Employee {
+  id: string;
+  name: string;
+  empNumber: string;
+  designation: string;
+  department: string;
+  validTill: string;
+  photo?: string; // Base64 string
+  customFields: CustomField[];
+  createdAt: number;
+}
+
+export interface AdminSettings {
+  username: string;
+  passwordHash: string; // Storing as plain text for this demo, but named hash for semantics
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  login: () => void;
+  logout: () => void;
 }
