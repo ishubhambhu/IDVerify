@@ -57,7 +57,7 @@ const Verification: React.FC = () => {
     <div className="min-h-screen bg-gray-100 py-4 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
       <div className="flex justify-center mb-6">
         <img 
-          src="public/bhulogo.png" 
+          src="/bhulogo.png" 
           alt="BHU Logo" 
           className="w-[22rem] h-[11rem] object-contain"
         />
