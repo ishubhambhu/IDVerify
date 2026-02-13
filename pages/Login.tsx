@@ -52,7 +52,7 @@ const Login: React.FC = () => {
                 id="username"
                 label="Username"
                 type="text"
-                placeholder="Enter admin username"
+                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
         </form>
         
         <div className="text-center text-xs text-gray-400">
-           Default: admin / admin123
+          Managed by Central Library, B.H.U.
         </div>
       </div>
     </div>

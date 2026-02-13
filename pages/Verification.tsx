@@ -54,15 +54,15 @@ const Verification: React.FC = () => {
   const isValid = new Date(employee.validTill) > new Date();
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-gray-100 py-4 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
       <div className="flex justify-center mb-6">
         <img 
           src="bhulogo.png" 
           alt="BHU Logo" 
-          className="w-48 h-48 object-contain"
+          className="w-[22rem] h-[11rem] object-contain"
         />
       </div>
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all -mt-8">
         {/* Status Banner */}
         <div className={`p-6 text-white text-center ${isValid ? 'bg-green-600' : 'bg-red-600'}`}>
            <div className="flex justify-center mb-2">
@@ -77,7 +77,7 @@ const Verification: React.FC = () => {
         </div>
 
         <div className="relative -mt-10 flex justify-center">
-            <div className="p-4 bg-white rounded-full shadow-lg">
+            <div className="p-[0.2rem] bg-white rounded-full shadow-lg">
                 <img 
                     src={employee.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=random&size=200`} 
                     alt={employee.name}
@@ -136,9 +136,7 @@ const Verification: React.FC = () => {
 
             <div className="mt-8 pt-6 border-t border-gray-100">
                 <p className="text-xs text-gray-400">
-                    Verified by IDVerify Pro System.
-                    <br />
-                    Scan date: {new Date().toLocaleDateString()}
+                    Verified by Banaras Hindu University.
                 </p>
             </div>
         </div>
