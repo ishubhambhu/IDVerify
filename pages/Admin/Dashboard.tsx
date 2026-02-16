@@ -325,7 +325,7 @@ const Dashboard: React.FC = () => {
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                <input 
                  type="text" 
-                 placeholder="Search by name, ID, or department..." 
+                 placeholder="Search by name, Employee ID, or department..." 
                  className="w-full pl-10 pr-4 py-2 bg-white text-gray-900 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
@@ -351,7 +351,7 @@ const Dashboard: React.FC = () => {
                         </div>
                      </th>
                      <th className="px-6 py-4">Employee</th>
-                     <th className="px-6 py-4">Employee Number</th>
+                     <th className="px-6 py-4">Employee ID</th>
                      <th className="px-6 py-4">Department</th>
                      <th className="px-6 py-4">Valid Until</th>
                      <th className="px-6 py-4 text-right">Actions</th>
