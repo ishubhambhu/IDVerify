@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileSpreadsheet, Download, Trash2, Edit2, QrCode, X, ExternalLink } from 'lucide-react';
+import { Plus, Search, FileJson, Download, Trash2, Edit2, QrCode, X, ExternalLink, CheckSquare, Square } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import Papa from 'papaparse';
 import { Button } from '../../components/ui/Button';
 import { Employee } from '../../types';
-import { getEmployees, deleteEmployee, saveEmployees } from '../../utils/storage';
+import { getEmployees, deleteEmployee, addEmployee, updateEmployee } from '../../utils/firestore';
 import EmployeeForm from './EmployeeForm';
 
 const Dashboard: React.FC = () => {
@@ -13,13 +12,16 @@ const Dashboard: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>(undefined);
   const [viewQr, setViewQr] = useState<Employee | null>(null);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     refreshData();
   }, []);
 
-  const refreshData = () => {
-    setEmployees(getEmployees());
+  const refreshData = async () => {
+    const employeesData = await getEmployees();
+    setEmployees(employeesData);
   };
 
   const handleEdit = (emp: Employee) => {
@@ -27,50 +29,204 @@ const Dashboard: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
-      deleteEmployee(id);
-      refreshData();
+  const handleDelete = async (id: string) => {
+    await deleteEmployee(id);
+    refreshData();
+  };
+
+  const handleSelectEmployee = (id: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(id) 
+        ? prev.filter(empId => empId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedEmployees.length === filteredEmployees.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleDelete = async () => {
+    for (const id of selectedEmployees) {
+      await deleteEmployee(id);
+    }
+    setSelectedEmployees([]);
+    refreshData();
+    setShowDeleteModal(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const csvData = evt.target?.result;
-      if (typeof csvData === 'string') {
-        Papa.parse(csvData, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            const data = results.data;
+    if (file.type !== 'application/json') {
+      alert('Please select a JSON file');
+      return;
+    }
 
-            // Map CSV data to employee structure
-            const newEmployees: Employee[] = data.map((row: any) => ({
-              id: crypto.randomUUID(),
-              name: row['Name'] || row['name'] || 'Unknown',
-              empNumber: row['Employment Number'] || row['empNumber'] || String(Math.floor(Math.random() * 10000)),
-              designation: row['Designation'] || row['designation'] || 'Staff',
-              department: row['Department'] || row['department'] || 'General',
-              validTill: row['Valid Till'] || row['validTill'] || '2025-12-31',
-              photo: '', 
-              customFields: [],
-              createdAt: Date.now()
-            }));
+    try {
+      const text = await file.text();
+      const jsonData = JSON.parse(text);
+      
+      // Handle different JSON formats
+      let employees = [];
+      
+      if (Array.isArray(jsonData)) {
+        // Direct array of employees
+        employees = jsonData.map((item: any) => ({
+          name: item.name || item.Name || 'Unknown',
+          empNumber: item.empNumber || item.employeeId || item.id || `EMP${Math.floor(Math.random() * 10000)}`,
+          designation: item.designation || item.Designation || item.role || item.Role || 'Staff',
+          department: item.department || item.Department || 'General',
+          validTill: item.validTill || item.validUntil || item.expiry || item.validTill || '2025-12-31',
+          photo: '',
+          customFields: []
+        }));
+      } else if (jsonData.employees && Array.isArray(jsonData.employees)) {
+        // Nested structure with employees array
+        employees = jsonData.employees.map((item: any) => ({
+          name: item.name || item.Name || 'Unknown',
+          empNumber: item.empNumber || item.employeeId || item.id || `EMP${Math.floor(Math.random() * 10000)}`,
+          designation: item.designation || item.Designation || item.role || item.Role || 'Staff',
+          department: item.department || item.Department || 'General',
+          validTill: item.validTill || item.validUntil || item.expiry || item.validTill || '2025-12-31',
+          photo: '',
+          customFields: []
+        }));
+      } else {
+        alert('Invalid JSON format. Please provide an array of employees or an object with an "employees" array.');
+        return;
+      }
+      
+      if (employees.length === 0) {
+        alert('No employee data found in JSON file.');
+        return;
+      }
 
-            const current = getEmployees();
-            saveEmployees([...newEmployees, ...current]);
-            refreshData();
-            alert(`Successfully imported ${newEmployees.length} employees.`);
+      // Add each employee to Firestore
+      for (const employee of employees) {
+        await addEmployee(employee);
+      }
+      
+      refreshData();
+      alert(`Successfully imported ${employees.length} employees from JSON.`);
+    } catch (error) {
+      console.error('Error processing JSON:', error);
+      alert('Error processing JSON. Please ensure it contains valid employee data in JSON format.');
+    }
+    
+    e.target.value = '';
+  };
+
+  const extractEmployeeDataFromPDF = (lines: string[]) => {
+    const employees = [];
+    let currentEmployee: any = {};
+    
+    // Skip header lines and look for employee data
+    let employeeStarted = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip headers and empty lines
+      if (line.includes('Name') && line.includes('Designation') && line.includes('Department')) {
+        employeeStarted = true;
+        continue;
+      }
+      
+      if (!employeeStarted || line === '' || line === '---' || line.includes('Total')) {
+        continue;
+      }
+      
+      // Parse employee data in tabular format
+      // Expected format: "Name Designation Department Valid Till"
+      const parts = line.split(/\s{2,}/); // Split by 2+ spaces
+      
+      if (parts.length >= 3) {
+        // Extract name (first part until we find what looks like a designation)
+        let name = parts[0];
+        let designation = '';
+        let department = '';
+        let validTill = '';
+        
+        // Try to identify the parts based on common patterns
+        if (parts.length === 4) {
+          // Format: Name | Designation | Department | Valid Till
+          name = parts[0];
+          designation = parts[1];
+          department = parts[2];
+          validTill = parts[3];
+        } else if (parts.length === 3) {
+          // Format: Name | Designation | Department (Valid Till might be missing)
+          name = parts[0];
+          designation = parts[1];
+          department = parts[2];
+          validTill = '2025-12-31'; // Default
+        } else {
+          // Try to parse more complex format
+          // Look for date pattern (YYYY-MM-DD or DD-MM-YYYY)
+          const datePattern = /\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}/;
+          let dateIndex = -1;
+          
+          for (let j = 0; j < parts.length; j++) {
+            if (datePattern.test(parts[j])) {
+              dateIndex = j;
+              break;
+            }
           }
+          
+          if (dateIndex > 0) {
+            validTill = parts[dateIndex];
+            department = parts[dateIndex - 1] || 'General';
+            designation = parts[1] || 'Staff';
+            name = parts[0];
+          } else {
+            // Fallback: assume first 3 parts are name, designation, department
+            name = parts[0] || 'Unknown';
+            designation = parts[1] || 'Staff';
+            department = parts[2] || 'General';
+            validTill = '2025-12-31';
+          }
+        }
+        
+        // Clean up the data
+        name = name.replace(/^\d+\s*/, '').trim(); // Remove leading numbers
+        designation = designation.trim();
+        department = department.trim();
+        validTill = validTill.trim();
+        
+        // Generate employee ID if not present
+        const empNumber = `EMP${Math.floor(Math.random() * 10000)}`;
+        
+        employees.push({
+          name: name || 'Unknown',
+          empNumber: empNumber,
+          designation: designation || 'Staff',
+          department: department || 'General',
+          validTill: validTill || '2025-12-31',
+          photo: '',
+          customFields: []
         });
       }
+    }
+    
+    return employees;
+  };
+
+  const createEmployeeFromData = (data: any) => {
+    return {
+      name: data.name || 'Unknown',
+      empNumber: data.empNumber || `EMP${Math.floor(Math.random() * 10000)}`,
+      designation: data.designation || 'Staff',
+      department: data.department || 'General',
+      validTill: data.validTill || '2025-12-31',
+      photo: '',
+      customFields: []
     };
-    reader.readAsText(file);
-    e.target.value = '';
   };
 
   const filteredEmployees = employees.filter(e => 
@@ -139,14 +295,23 @@ const Dashboard: React.FC = () => {
            <p className="text-gray-500">Manage ID cards and verification details</p>
         </div>
         <div className="flex flex-wrap gap-2">
+           {selectedEmployees.length > 0 && (
+             <Button 
+               variant="destructive" 
+               onClick={() => setShowDeleteModal(true)}
+               className="bg-red-600 hover:bg-red-700"
+             >
+               Delete Selected ({selectedEmployees.length})
+             </Button>
+           )}
            <div className="relative">
               <input 
                 type="file" 
-                accept=".xlsx, .xls" 
+                accept=".json" 
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={handleFileUpload}
               />
-              <Button variant="secondary" icon={<FileSpreadsheet size={16} />}>Import Excel</Button>
+              <Button variant="secondary" icon={<FileJson size={16} />}>Import JSON</Button>
            </div>
            <Button icon={<Plus size={16} />} onClick={() => { setEditingEmployee(undefined); setIsFormOpen(true); }}>
              Add Employee
@@ -175,8 +340,18 @@ const Dashboard: React.FC = () => {
             <table className="w-full text-left text-sm text-gray-600">
                <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
                   <tr>
+                     <th className="px-6 py-4 w-12">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                            onChange={handleSelectAll}
+                          />
+                        </div>
+                     </th>
                      <th className="px-6 py-4">Employee</th>
-                     <th className="px-6 py-4">ID Number</th>
+                     <th className="px-6 py-4">Employee Number</th>
                      <th className="px-6 py-4">Department</th>
                      <th className="px-6 py-4">Valid Until</th>
                      <th className="px-6 py-4 text-right">Actions</th>
@@ -185,13 +360,23 @@ const Dashboard: React.FC = () => {
                <tbody className="divide-y divide-gray-100">
                   {filteredEmployees.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                        No employees found. Add one or import from Excel.
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                        No employees found. Add one or import from JSON.
                       </td>
                     </tr>
                   ) : (
                     filteredEmployees.map((emp) => (
                         <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  checked={selectedEmployees.includes(emp.id)}
+                                  onChange={() => handleSelectEmployee(emp.id)}
+                                />
+                              </div>
+                            </td>
                             <td className="px-6 py-4">
                                <div 
                                  onClick={() => openVerificationPage(emp.id)}
@@ -285,6 +470,38 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
          </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative transform transition-all scale-100">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Selected Employees</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete {selectedEmployees.length} employee{selectedEmployees.length > 1 ? 's' : ''}? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleMultipleDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete {selectedEmployees.length} {selectedEmployees.length > 1 ? 'Employees' : 'Employee'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

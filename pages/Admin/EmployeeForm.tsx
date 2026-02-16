@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Plus, Trash, Save, Crop } from 'lucide-react';
 import { Employee } from '../../types';
-import { addEmployee, updateEmployee } from '../../utils/storage';
+import { addEmployee, updateEmployee } from '../../utils/firestore';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DateInput } from '../../components/ui/DateInput';
@@ -101,28 +101,40 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ isOpen, onClose, initialDat
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Simulate loading for better UX
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    setTimeout(() => {
+    try {
       const employeeData = {
         ...formData,
-        id: initialData?.id || crypto.randomUUID(),
-        createdAt: initialData?.createdAt || Date.now(),
         validTill: formData.validTill || new Date().toISOString().split('T')[0] // Fallback
-      } as Employee;
+      };
+
+      console.log('Form data being submitted:', formData);
+      console.log('Employee data to save:', employeeData);
 
       if (initialData) {
-        updateEmployee(employeeData);
+        console.log('Updating employee with ID:', initialData.id);
+        await updateEmployee(initialData.id, employeeData);
       } else {
-        addEmployee(employeeData);
+        console.log('Adding new employee...');
+        const docId = await addEmployee(employeeData);
+        console.log('Employee saved with ID:', docId);
       }
       
       setIsLoading(false);
       onSave();
       onClose();
-    }, 500);
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      setIsLoading(false);
+      alert(`Error saving employee: ${error.message || 'Unknown error'}`);
+    }
   };
 
   if (!isOpen) return null;

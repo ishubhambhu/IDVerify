@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { getAdminSettings, setAuthStatus } from '../utils/storage';
+import { getAdminSettings, setAuthStatus } from '../utils/firestore';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -13,14 +13,13 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate network delay for effect
-    setTimeout(() => {
-      const settings = getAdminSettings();
+    try {
+      const settings = await getAdminSettings();
       if (username === settings.username && password === settings.passwordHash) {
         setAuthStatus(true);
         navigate('/admin');
@@ -28,7 +27,10 @@ const Login: React.FC = () => {
         setError('Invalid username or password');
         setIsLoading(false);
       }
-    }, 800);
+    } catch (error) {
+      setError('Login failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (

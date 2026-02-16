@@ -2,25 +2,36 @@ import React, { useState } from 'react';
 import { Save, Lock, UserCog, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { getAdminSettings, saveAdminSettings } from '../../utils/storage';
+import { getAdminSettings, saveAdminSettings } from '../../utils/firestore';
 
 const Settings: React.FC = () => {
-  const [formData, setFormData] = useState(getAdminSettings());
+  const [formData, setFormData] = useState({ username: '', passwordHash: '' });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await getAdminSettings();
+      setFormData(settings);
+    };
+    loadSettings();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
 
-    setTimeout(() => {
-      saveAdminSettings(formData);
-      setIsLoading(false);
+    try {
+      await saveAdminSettings(formData);
       setMessage('Settings updated successfully!');
       setTimeout(() => setMessage(''), 3000);
-    }, 800);
+    } catch (error) {
+      setMessage('Error updating settings. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

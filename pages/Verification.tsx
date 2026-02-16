@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Calendar, Building2, User, UserCheck, ShieldCheck } from 'lucide-react';
-import { getEmployees } from '../utils/storage';
+import { getEmployeeById } from '../utils/firestore';
 import { Employee } from '../types';
 
 const Verification: React.FC = () => {
@@ -11,23 +11,28 @@ const Verification: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Simulate API fetch
-    const timer = setTimeout(() => {
-      if (id) {
-        const allEmployees = getEmployees();
-        const found = allEmployees.find((e) => e.id === id);
-        if (found) {
-          setEmployee(found);
+    // Fetch employee from Firestore
+    const fetchEmployee = async () => {
+      try {
+        if (id) {
+          const found = await getEmployeeById(id);
+          if (found) {
+            setEmployee(found);
+          } else {
+            setNotFound(true);
+          }
         } else {
           setNotFound(true);
         }
-      } else {
+      } catch (error) {
+        console.error("Error fetching employee:", error);
         setNotFound(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    fetchEmployee();
   }, [id]);
 
   if (loading) {

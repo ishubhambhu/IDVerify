@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Settings, LogOut, ScanLine } from 'lucide-react';
-import { setAuthStatus } from '../utils/storage';
+import { setAuthStatus } from '../utils/firestore';
 
 interface LayoutProps {
   children: React.ReactNode;
