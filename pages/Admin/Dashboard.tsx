@@ -249,8 +249,11 @@ const Dashboard: React.FC = () => {
       const url = URL.createObjectURL(svgBlob);
       
       img.onload = () => {
-        // Set higher resolution for download
+        // Set higher resolution for download with white border
         const size = 1024;
+        const qrSize = 900; // QR code size (smaller than canvas to leave border)
+        const borderSize = (size - qrSize) / 2; // White border size
+        
         canvas.width = size;
         canvas.height = size;
         
@@ -259,8 +262,8 @@ const Dashboard: React.FC = () => {
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(0, 0, size, size);
             
-            // Draw SVG onto canvas
-            ctx.drawImage(img, 0, 0, size, size);
+            // Draw QR code with white border
+            ctx.drawImage(img, borderSize, borderSize, qrSize, qrSize);
             
             // Convert to JPEG
             const jpgUrl = canvas.toDataURL("image/jpeg", 0.9);
