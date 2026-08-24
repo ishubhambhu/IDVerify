@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileJson, Download, Trash2, Edit2, QrCode, X, ExternalLink, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, FileJson, Download, Trash2, Edit2, QrCode, X, ExternalLink, CheckSquare, Square, Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '../../components/ui/Button';
 import { Employee } from '../../types';
@@ -15,6 +15,7 @@ const Dashboard: React.FC = () => {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [adminSettings, setAdminSettings] = useState<any>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   useEffect(() => {
     refreshData();
@@ -294,30 +295,13 @@ const Dashboard: React.FC = () => {
   };
 
   const getVerificationUrl = (id: string) => {
-    const prefix = (adminSettings?.verificationPrefix || 'https://verify.bhu.ac.in/employee/verify/').replace(/\/?$/, '/');
-    const suffix = adminSettings?.urlSuffix ?? '.netlify.app';
-    const mode = adminSettings?.qrFormatMode || 'prefix-suffix';
-    const hostDomain = (adminSettings?.hostingDomain || window.location.origin).replace(/\/+$/, '');
-    const cleanHost = hostDomain.replace(/^https?:\/\//, '');
-
-    if (mode === 'redirect') {
-      return `${prefix}@${cleanHost}/#/employee/verify/${id}`;
-    }
-    if (mode === 'prefix-id') {
-      return `${prefix}${id}`;
-    }
-    if (mode === 'direct') {
-      return `${hostDomain}/#/employee/verify/${id}`;
-    }
-    return `${prefix}${id}${suffix}`;
-  };
-
-  const getLocalVerificationUrl = (id: string) => {
-    return `${window.location.origin}${window.location.pathname}#/employee/verify/${id}`;
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    return `${origin}${pathname}#/employee/verify/${id}.netlify.app`;
   };
 
   const openVerificationPage = (id: string) => {
-    window.open(getLocalVerificationUrl(id), '_blank');
+    window.open(getVerificationUrl(id), '_blank');
   };
 
   return (
@@ -488,11 +472,25 @@ const Dashboard: React.FC = () => {
                    </div>
 
                    {/* Verification URL text */}
-                   <div className="mb-5 p-2.5 bg-gray-50 rounded-xl border border-gray-200/80">
-                     <p className="text-[11px] text-gray-400 font-medium uppercase mb-0.5">Verification URL</p>
-                     <p className="text-xs text-indigo-600 font-mono break-all select-all font-medium">
-                       {getVerificationUrl(viewQr.id)}
-                     </p>
+                   <div className="mb-5 p-2.5 bg-gray-50 rounded-xl border border-gray-200/80 flex items-center justify-between gap-2">
+                     <div className="text-left min-w-0">
+                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Verification URL</p>
+                       <p className="text-xs text-indigo-700 font-mono break-all select-all font-semibold">
+                         {getVerificationUrl(viewQr.id)}
+                       </p>
+                     </div>
+                     <button
+                       type="button"
+                       onClick={() => {
+                         navigator.clipboard.writeText(getVerificationUrl(viewQr.id));
+                         setCopiedUrl(true);
+                         setTimeout(() => setCopiedUrl(false), 2000);
+                       }}
+                       className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 shrink-0 transition-colors"
+                       title="Copy URL"
+                     >
+                       {copiedUrl ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                     </button>
                    </div>
                    
                    <div className="grid grid-cols-2 gap-3">

@@ -28,18 +28,28 @@ export const getEmployees = async (): Promise<Employee[]> => {
   try {
     const q = query(collection(db, EMPLOYEES_COLLECTION), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
+    const employees = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         ...data,
         id: doc.id,
         createdAt: data.createdAt?.toDate() || new Date(),
-        validTill: data.validTill || new Date().toISOString().split('T')[0], // Keep as string
+        validTill: data.validTill || new Date().toISOString().split('T')[0],
       } as Employee;
     });
+    // Cache to localStorage
+    try {
+      localStorage.setItem('idverify_employees', JSON.stringify(employees));
+    } catch (e) {}
+    return employees;
   } catch (error) {
-    console.error("Failed to load employees", error);
-    return [];
+    console.error("Failed to load employees from Firestore, trying local cache", error);
+    try {
+      const local = localStorage.getItem('idverify_employees');
+      return local ? JSON.parse(local) : [];
+    } catch (e) {
+      return [];
+    }
   }
 };
 
@@ -54,6 +64,19 @@ export const addEmployee = async (employee: Omit<Employee, 'id' | 'createdAt'>):
       status: 'active'
     });
     console.log('Employee added successfully with ID:', docRef.id);
+    
+    // Also save in local storage cache
+    try {
+      const local = localStorage.getItem('idverify_employees');
+      const list: Employee[] = local ? JSON.parse(local) : [];
+      list.unshift({
+        ...employee,
+        id: docRef.id,
+        createdAt: new Date().getTime(),
+      } as any);
+      localStorage.setItem('idverify_employees', JSON.stringify(list));
+    } catch (e) {}
+
     return docRef.id;
   } catch (error) {
     console.error("Failed to add employee", error);
@@ -70,12 +93,23 @@ export const updateEmployee = async (id: string, updates: Partial<Employee>): Pr
       updatedAt: serverTimestamp()
     };
     
-    // Keep validTill as string, don't convert to Timestamp
     if (updates.validTill) {
       updateData.validTill = updates.validTill;
     }
     
     await updateDoc(docRef, updateData);
+
+    try {
+      const local = localStorage.getItem('idverify_employees');
+      if (local) {
+        const list: Employee[] = JSON.parse(local);
+        const idx = list.findIndex(e => e.id === id);
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...updates };
+          localStorage.setItem('idverify_employees', JSON.stringify(list));
+        }
+      }
+    } catch (e) {}
   } catch (error) {
     console.error("Failed to update employee", error);
     throw error;
@@ -85,6 +119,13 @@ export const updateEmployee = async (id: string, updates: Partial<Employee>): Pr
 export const deleteEmployee = async (id: string): Promise<void> => {
   try {
     await deleteDoc(doc(db, EMPLOYEES_COLLECTION, id));
+    try {
+      const local = localStorage.getItem('idverify_employees');
+      if (local) {
+        const list: Employee[] = JSON.parse(local);
+        localStorage.setItem('idverify_employees', JSON.stringify(list.filter(e => e.id !== id)));
+      }
+    } catch (e) {}
   } catch (error) {
     console.error("Failed to delete employee", error);
     throw error;
@@ -96,7 +137,7 @@ export const getEmployeeById = async (id: string): Promise<Employee | null> => {
     if (!id) return null;
     const cleanId = id.replace(/\.netlify\.app.*$/i, '').replace(/^[#/]+/, '').trim();
     
-    // 1. Try direct document ID lookup
+    // 1. Try direct Firestore document ID lookup with cleanId
     try {
       const docRef = doc(db, EMPLOYEES_COLLECTION, cleanId);
       const docSnap = await getDoc(docRef);
@@ -110,10 +151,29 @@ export const getEmployeeById = async (id: string): Promise<Employee | null> => {
         } as Employee;
       }
     } catch (e) {
-      // Continue to empNumber lookup
+      // Continue
     }
 
-    // 2. Try employee number lookup
+    // 2. Try direct Firestore document ID lookup with original id
+    try {
+      if (id !== cleanId) {
+        const docRef = doc(db, EMPLOYEES_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          return {
+            ...data,
+            id: docSnap.id,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            validTill: data.validTill || new Date().toISOString().split('T')[0],
+          } as Employee;
+        }
+      }
+    } catch (e) {
+      // Continue
+    }
+
+    // 3. Try employee number lookup in Firestore
     try {
       const q = query(collection(db, EMPLOYEES_COLLECTION), where('empNumber', '==', cleanId));
       const querySnap = await getDocs(q);
@@ -128,7 +188,26 @@ export const getEmployeeById = async (id: string): Promise<Employee | null> => {
         } as Employee;
       }
     } catch (e) {
-      // Query error
+      // Continue
+    }
+
+    // 4. Try local storage cache fallback
+    try {
+      const local = localStorage.getItem('idverify_employees');
+      if (local) {
+        const list: Employee[] = JSON.parse(local);
+        const found = list.find(e => 
+          e.id === cleanId || 
+          e.id === id || 
+          e.empNumber === cleanId || 
+          e.empNumber === id ||
+          e.id?.includes(cleanId) ||
+          cleanId.includes(e.id)
+        );
+        if (found) return found;
+      }
+    } catch (e) {
+      // Continue
     }
 
     return null;
