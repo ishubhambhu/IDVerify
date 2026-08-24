@@ -4,6 +4,22 @@ import { Briefcase, LayoutGrid, ArrowDownToLine, Calendar, Check, AlertCircle, F
 import { getEmployeeById } from '../utils/firestore';
 import { Employee } from '../types';
 
+const cleanIdString = (val: string): string => {
+  if (!val) return '';
+  let cleaned = decodeURIComponent(val).trim();
+  // Strip trailing query parameters or hash segments
+  cleaned = cleaned.split('?')[0].split('#')[0];
+  // Strip .netlify.app if present
+  cleaned = cleaned.replace(/\.netlify\.app.*$/i, '');
+  // Strip userinfo prefix if @ exists
+  if (cleaned.includes('@')) {
+    cleaned = cleaned.split('@').pop() || '';
+  }
+  // Strip any leading slashes or path segments
+  cleaned = cleaned.replace(/^.*\/+/, '').replace(/^\/+|\/+$/g, '').trim();
+  return cleaned;
+};
+
 const Verification: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -12,35 +28,53 @@ const Verification: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Fetch employee from Firestore
     const fetchEmployee = async () => {
       try {
-        // Extract ID and clean any potential trailing '.netlify.app' or extra path segments
-        let targetId = id;
-        
-        if (!targetId) {
-          // Check pathname / hash fallback
-          const pathSegments = (location.pathname || '').split('/verify/');
-          if (pathSegments.length > 1) {
-            targetId = pathSegments[1];
-          } else {
-            const hashSegments = (window.location.hash || '').split('/verify/');
-            if (hashSegments.length > 1) {
-              targetId = hashSegments[1];
-            }
+        let extractedId = '';
+
+        // 1. From route params
+        if (id && id !== '*' && id !== 'verify') {
+          extractedId = cleanIdString(id);
+        }
+
+        // 2. From search query parameters
+        if (!extractedId) {
+          const searchParams = new URLSearchParams(window.location.search || location.search);
+          const qId = searchParams.get('id') || searchParams.get('verify') || searchParams.get('emp') || searchParams.get('key');
+          if (qId) {
+            extractedId = cleanIdString(qId);
           }
         }
 
-        if (targetId) {
-          // Clean possible .netlify.app suffix
-          const cleanId = targetId.replace(/\.netlify\.app.*$/, '').replace(/^\/+|\/+$/g, '').trim();
-          
-          let found = await getEmployeeById(cleanId);
-          if (!found && cleanId !== targetId) {
-            // Try with original targetId just in case
-            found = await getEmployeeById(targetId);
+        // 3. From window.location.hash
+        if (!extractedId) {
+          const hash = window.location.hash || '';
+          if (hash.includes('/verify/')) {
+            const hashParts = hash.split('/verify/');
+            if (hashParts[1]) extractedId = cleanIdString(hashParts[1]);
           }
+        }
 
+        // 4. From window.location.pathname
+        if (!extractedId) {
+          const pathname = window.location.pathname || location.pathname || '';
+          if (pathname.includes('/verify/')) {
+            const pathParts = pathname.split('/verify/');
+            if (pathParts[1]) extractedId = cleanIdString(pathParts[1]);
+          }
+        }
+
+        // 5. From full URL
+        if (!extractedId) {
+          const href = window.location.href;
+          if (href.includes('/verify/')) {
+            const hrefParts = href.split('/verify/');
+            if (hrefParts[1]) extractedId = cleanIdString(hrefParts[1]);
+          }
+        }
+
+        if (extractedId) {
+          let found = await getEmployeeById(extractedId);
           if (found) {
             setEmployee(found);
           } else {

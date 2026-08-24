@@ -14,8 +14,7 @@ const Dashboard: React.FC = () => {
   const [viewQr, setViewQr] = useState<Employee | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [urlPrefix, setUrlPrefix] = useState('https://verify.bhu.ac.in/employee/verify/');
-  const [urlSuffix, setUrlSuffix] = useState('.netlify.app');
+  const [adminSettings, setAdminSettings] = useState<any>(null);
 
   useEffect(() => {
     refreshData();
@@ -25,8 +24,7 @@ const Dashboard: React.FC = () => {
   const loadSettings = async () => {
     try {
       const settings = await getAdminSettings();
-      if (settings.verificationPrefix) setUrlPrefix(settings.verificationPrefix);
-      if (settings.urlSuffix !== undefined) setUrlSuffix(settings.urlSuffix);
+      setAdminSettings(settings);
     } catch (e) {
       console.error('Error loading settings', e);
     }
@@ -296,8 +294,22 @@ const Dashboard: React.FC = () => {
   };
 
   const getVerificationUrl = (id: string) => {
-    const cleanPrefix = urlPrefix.endsWith('/') ? urlPrefix : `${urlPrefix}/`;
-    return `${cleanPrefix}${id}${urlSuffix}`;
+    const prefix = (adminSettings?.verificationPrefix || 'https://verify.bhu.ac.in/employee/verify/').replace(/\/?$/, '/');
+    const suffix = adminSettings?.urlSuffix ?? '.netlify.app';
+    const mode = adminSettings?.qrFormatMode || 'prefix-suffix';
+    const hostDomain = (adminSettings?.hostingDomain || window.location.origin).replace(/\/+$/, '');
+    const cleanHost = hostDomain.replace(/^https?:\/\//, '');
+
+    if (mode === 'redirect') {
+      return `${prefix}@${cleanHost}/#/employee/verify/${id}`;
+    }
+    if (mode === 'prefix-id') {
+      return `${prefix}${id}`;
+    }
+    if (mode === 'direct') {
+      return `${hostDomain}/#/employee/verify/${id}`;
+    }
+    return `${prefix}${id}${suffix}`;
   };
 
   const getLocalVerificationUrl = (id: string) => {

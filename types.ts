@@ -21,6 +21,8 @@ export interface AdminSettings {
   passwordHash: string; // Storing as plain text for this demo, but named hash for semantics
   verificationPrefix?: string;
   urlSuffix?: string;
+  hostingDomain?: string;
+  qrFormatMode?: 'redirect' | 'prefix-suffix' | 'prefix-id' | 'direct';
 }
 
 export interface AuthState {
