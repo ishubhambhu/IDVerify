@@ -19,6 +19,8 @@ export interface Employee {
 export interface AdminSettings {
   username: string;
   passwordHash: string; // Storing as plain text for this demo, but named hash for semantics
+  verificationPrefix?: string;
+  urlSuffix?: string;
 }
 
 export interface AuthState {

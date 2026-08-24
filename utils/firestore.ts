@@ -8,6 +8,7 @@ import {
   deleteDoc, 
   setDoc,
   query, 
+  where,
   orderBy, 
   serverTimestamp,
   Timestamp 
@@ -92,18 +93,44 @@ export const deleteEmployee = async (id: string): Promise<void> => {
 
 export const getEmployeeById = async (id: string): Promise<Employee | null> => {
   try {
-    const docRef = doc(db, EMPLOYEES_COLLECTION, id);
-    const docSnap = await getDoc(docRef);
+    if (!id) return null;
+    const cleanId = id.replace(/\.netlify\.app.*$/i, '').replace(/^[#/]+/, '').trim();
     
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return {
-        ...data,
-        id: docSnap.id,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        validTill: data.validTill || new Date().toISOString().split('T')[0], // Keep as string
-      } as Employee;
+    // 1. Try direct document ID lookup
+    try {
+      const docRef = doc(db, EMPLOYEES_COLLECTION, cleanId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          ...data,
+          id: docSnap.id,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          validTill: data.validTill || new Date().toISOString().split('T')[0],
+        } as Employee;
+      }
+    } catch (e) {
+      // Continue to empNumber lookup
     }
+
+    // 2. Try employee number lookup
+    try {
+      const q = query(collection(db, EMPLOYEES_COLLECTION), where('empNumber', '==', cleanId));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        const docSnap = querySnap.docs[0];
+        const data = docSnap.data();
+        return {
+          ...data,
+          id: docSnap.id,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          validTill: data.validTill || new Date().toISOString().split('T')[0],
+        } as Employee;
+      }
+    } catch (e) {
+      // Query error
+    }
+
     return null;
   } catch (error) {
     console.error("Failed to get employee", error);

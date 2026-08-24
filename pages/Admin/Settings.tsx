@@ -72,13 +72,32 @@ const Settings: React.FC = () => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                  </div>
               </div>
-           </div>
+               <div className="pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Verification URL Schema</h3>
+                  <p className="text-xs text-gray-500 mb-4">Configure the prefix and suffix used for QR code generation</p>
+                  
+                  <div className="space-y-4">
+                    <Input
+                      label="Verification URL Prefix"
+                      value={formData.verificationPrefix || 'https://verify.bhu.ac.in/employee/verify/'}
+                      onChange={(e) => setFormData(p => ({ ...p, verificationPrefix: e.target.value }))}
+                      placeholder="https://verify.bhu.ac.in/employee/verify/"
+                    />
+                    <Input
+                      label="URL Suffix (Appended after ID)"
+                      value={formData.urlSuffix ?? '.netlify.app'}
+                      onChange={(e) => setFormData(p => ({ ...p, urlSuffix: e.target.value }))}
+                      placeholder=".netlify.app"
+                    />
+                  </div>
+               </div>
+            </div>
 
-           {message && (
-             <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-               {message}
-             </div>
-           )}
+            {message && (
+              <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">
+                {message}
+              </div>
+            )}
 
            <div className="flex justify-end pt-4">
               <Button type="submit" isLoading={isLoading} icon={<Save size={18} />}>

@@ -3,7 +3,7 @@ import { Plus, Search, FileJson, Download, Trash2, Edit2, QrCode, X, ExternalLin
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '../../components/ui/Button';
 import { Employee } from '../../types';
-import { getEmployees, deleteEmployee, addEmployee, updateEmployee } from '../../utils/firestore';
+import { getEmployees, deleteEmployee, addEmployee, updateEmployee, getAdminSettings } from '../../utils/firestore';
 import EmployeeForm from './EmployeeForm';
 
 const Dashboard: React.FC = () => {
@@ -14,10 +14,23 @@ const Dashboard: React.FC = () => {
   const [viewQr, setViewQr] = useState<Employee | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [urlPrefix, setUrlPrefix] = useState('https://verify.bhu.ac.in/employee/verify/');
+  const [urlSuffix, setUrlSuffix] = useState('.netlify.app');
 
   useEffect(() => {
     refreshData();
+    loadSettings();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const settings = await getAdminSettings();
+      if (settings.verificationPrefix) setUrlPrefix(settings.verificationPrefix);
+      if (settings.urlSuffix !== undefined) setUrlSuffix(settings.urlSuffix);
+    } catch (e) {
+      console.error('Error loading settings', e);
+    }
+  };
 
   const refreshData = async () => {
     const employeesData = await getEmployees();
@@ -283,7 +296,8 @@ const Dashboard: React.FC = () => {
   };
 
   const getVerificationUrl = (id: string) => {
-    return `https://verify.bhu.ac.in/employee/verify/${id}.netlify.app`;
+    const cleanPrefix = urlPrefix.endsWith('/') ? urlPrefix : `${urlPrefix}/`;
+    return `${cleanPrefix}${id}${urlSuffix}`;
   };
 
   const getLocalVerificationUrl = (id: string) => {
