@@ -22,6 +22,8 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/verify/:id" element={<Verification />} />
+          <Route path="/employee/verify/:id" element={<Verification />} />
+          <Route path="/employee/verify/*" element={<Verification />} />
           
           <Route
             path="/admin"
@@ -41,6 +43,7 @@ const App: React.FC = () => {
           />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Layout>
     </Router>

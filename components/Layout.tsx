@@ -12,7 +12,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
   // Check if we are on a public page
-  const isPublic = location.pathname.startsWith('/verify') || location.pathname === '/login';
+  const isPublic = location.pathname.includes('/verify') || location.pathname === '/login';
 
   const handleLogout = () => {
     setAuthStatus(false);

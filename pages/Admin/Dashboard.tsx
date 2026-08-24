@@ -283,11 +283,15 @@ const Dashboard: React.FC = () => {
   };
 
   const getVerificationUrl = (id: string) => {
-    return `${window.location.origin}${window.location.pathname}#/verify/${id}`;
+    return `https://verify.bhu.ac.in/employee/verify/${id}.netlify.app`;
+  };
+
+  const getLocalVerificationUrl = (id: string) => {
+    return `${window.location.origin}${window.location.pathname}#/employee/verify/${id}`;
   };
 
   const openVerificationPage = (id: string) => {
-    window.open(getVerificationUrl(id), '_blank');
+    window.open(getLocalVerificationUrl(id), '_blank');
   };
 
   return (
@@ -444,7 +448,7 @@ const Dashboard: React.FC = () => {
                    <p className="text-sm text-gray-500 mb-6 font-mono">{viewQr.empNumber}</p>
                    
                    {/* Modern QR Container */}
-                   <div className="bg-white p-8 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 inline-block mb-6 relative group">
+                   <div className="bg-white p-8 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 inline-block mb-4 relative group">
                       <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-purple-500/5 rounded-2xl pointer-events-none"></div>
                       <QRCodeSVG 
                         id={`qr-svg-${viewQr.id}`}
@@ -456,10 +460,18 @@ const Dashboard: React.FC = () => {
                         includeMargin={false}
                       />
                    </div>
+
+                   {/* Verification URL text */}
+                   <div className="mb-5 p-2.5 bg-gray-50 rounded-xl border border-gray-200/80">
+                     <p className="text-[11px] text-gray-400 font-medium uppercase mb-0.5">Verification URL</p>
+                     <p className="text-xs text-indigo-600 font-mono break-all select-all font-medium">
+                       {getVerificationUrl(viewQr.id)}
+                     </p>
+                   </div>
                    
                    <div className="grid grid-cols-2 gap-3">
                       <Button variant="secondary" onClick={() => openVerificationPage(viewQr.id)} icon={<ExternalLink size={16} />}>
-                        Open Page
+                        Preview Page
                       </Button>
                       <Button onClick={() => downloadQRCode(viewQr.id, viewQr.name)} icon={<Download size={16}/>}>
                         Save JPEG
